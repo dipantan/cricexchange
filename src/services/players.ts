@@ -141,7 +141,7 @@ const fetchUpcomingMatches = async () => {
       .split("T")[0];
 
     const data = await instance.get(
-      `/fixtures?filter[starts_between]=${today},${targetDate}&include=venue,visitorteam,localteam`
+      `/fixtures?filter[starts_between]=${today},${targetDate}&include=balls,odds,runs,bowling,batting,venue,stage,season,league,visitorteam,localteam,scoreboards,manofseries,manofmatch,tosswon`
     );
 
     return SuccessResponse(data.data, 200);
