@@ -19,4 +19,4 @@ jobs:
           server: ftp.samkirkland.com
           username: ftpuser
           password: ftpuser
-          server-dir: /www/wwwroot/cricexchange
+          server-dir: /www/wwwroot/cricexchange/
