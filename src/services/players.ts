@@ -150,7 +150,7 @@ const fetchUpcomingMatches = async () => {
   }
 };
 
-const fetchLineUps = async (id) => {
+const fetchLineUps = async (id: string) => {
   try {
     const data = await instance.get(
       `/fixtures/${id}?include=lineup,visitorteam,localteam`
