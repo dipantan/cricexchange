@@ -153,7 +153,7 @@ const fetchUpcomingMatches = async () => {
 const fetchLineUps = async (id: string) => {
   try {
     const data = await instance.get(
-      `/fixtures/${id}?include=lineup,visitorteam,localteam`
+      `/fixtures/${id}?include=lineup`
     );
     return SuccessResponse(data.data, 200);
   } catch (error) {
