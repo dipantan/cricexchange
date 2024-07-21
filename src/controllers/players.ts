@@ -5,6 +5,7 @@ import {
   setAllPlayers,
   refreshPlayerPrice,
   fetchUpcomingMatches,
+  fetchLineUps,
 } from "../services/players";
 
 const router = Router();
@@ -16,6 +17,12 @@ router.get("/player/:id", async (req, res) => {
 
 router.get("/upcoming", async (req, res) => {
   const data = await fetchUpcomingMatches();
+  res.send(data);
+});
+
+router.get("/upcoming/:id", async (req, res) => {
+  const param = req.params.id;
+  const data = await fetchLineUps(param);
   res.send(data);
 });
 

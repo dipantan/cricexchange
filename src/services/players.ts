@@ -141,9 +141,20 @@ const fetchUpcomingMatches = async () => {
       .split("T")[0];
 
     const data = await instance.get(
-      `/fixtures?filter[starts_between]=${today},${targetDate}&include=balls,odds,runs,bowling,batting,venue,stage,season,league,visitorteam,localteam,scoreboards,manofseries,manofmatch,tosswon`
+      `/fixtures?filter[starts_between]=${today},${targetDate}&include=venue,stage,league,visitorteam,localteam`
     );
 
+    return SuccessResponse(data.data, 200);
+  } catch (error) {
+    return ErrorResponse("Something went wrong", 500);
+  }
+};
+
+const fetchLineUps = async (id) => {
+  try {
+    const data = await instance.get(
+      `/fixtures/${id}?include=lineup,visitorteam,localteam`
+    );
     return SuccessResponse(data.data, 200);
   } catch (error) {
     return ErrorResponse("Something went wrong", 500);
@@ -156,4 +167,5 @@ export {
   fetchAllPlayers,
   refreshPlayerPrice,
   fetchUpcomingMatches,
+  fetchLineUps,
 };
