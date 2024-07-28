@@ -1,7 +1,9 @@
 import dbConfig from "../config/db";
 import instance from "../config/instance";
+import { insertOrUpdatePrice } from "../helpers";
 import { ErrorResponse, SuccessResponse } from "../templates/response";
 import { Metadata, Player } from "../types";
+import { calculateTotalPoints, getRandomNumber } from "../utils";
 
 const fetchPoints = async (id: string) => {
   try {
@@ -20,7 +22,7 @@ const fetchPoints = async (id: string) => {
 // fetch all players from api and store it in database
 const setAllPlayers = async () => {
   try {
-    const { data } = await instance.get("/players");
+    const { data } = await instance.get("/players?include=career,country");
     if (data?.constructor === Array && data.length > 0) {
       // clear players table
       const sql = `DELETE FROM players`;
@@ -28,23 +30,8 @@ const setAllPlayers = async () => {
       const results = await Promise.all(
         data.map(async (player: Player) => {
           const sql = `
-            INSERT INTO players (
-              id, country_id, firstname, lastname, fullname, image_path,
-              dateofbirth, gender, battingstyle, bowlingstyle, position_id, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-              country_id = VALUES(country_id),
-              firstname = VALUES(firstname),
-              lastname = VALUES(lastname),
-              fullname = VALUES(fullname),
-              image_path = VALUES(image_path),
-              dateofbirth = VALUES(dateofbirth),
-              gender = VALUES(gender),
-              battingstyle = VALUES(battingstyle),
-              bowlingstyle = VALUES(bowlingstyle),
-              position_id = VALUES(position_id),
-              updated_at = VALUES(updated_at)
-          `;
+            INSERT INTO players (id, country_id, firstname, lastname, fullname, image_path, dateofbirth, gender, battingstyle, bowlingstyle, career, country, position_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
           const values = [
             player.id,
             player.country_id,
@@ -56,10 +43,13 @@ const setAllPlayers = async () => {
             player.gender,
             player.battingstyle,
             player.bowlingstyle,
+            JSON.stringify(player.career),
+            JSON.stringify(player.country),
             player.position.id,
             player.updated_at,
           ];
-          return dbConfig(sql, values);
+
+          return dbConfig(sql, values, true);
         })
       );
       return SuccessResponse("All players refreshed successfully", 200);
@@ -72,6 +62,7 @@ const setAllPlayers = async () => {
   }
 };
 
+// get all players stored in db with pagination, limit and search
 const fetchAllPlayers = async (
   limit?: string,
   page?: string,
@@ -117,16 +108,20 @@ const fetchAllPlayers = async (
 const refreshPlayerPrice = async () => {
   try {
     // code to generate price for all players
-    const players: any = await dbConfig("SELECT * FROM players");
-    if (players?.constructor === Array && players.length > 0) {
-      const results = await Promise.all(
-        players.map(async (player: any) => {
-          const id = player.id;
-          const data = await instance.get(`/players/${id}?include=career`);
-          console.log(data);
-        })
-      );
-      return SuccessResponse("All players refreshed successfully", 200);
+    const sql = "select id, career from players";
+    const data = await dbConfig(sql);
+    if (data.constructor === Array && data.length > 0) {
+      const arr = data.map(async (player: any) => {
+        const parsedData = JSON.parse(player.career);
+        if (parsedData.length > 0) {
+          const price = calculateTotalPoints(parsedData, player.id);
+          const result = await insertOrUpdatePrice(player.id, price);
+        } else {
+          const price = getRandomNumber(10, 12);
+          const result = await insertOrUpdatePrice(player.id, price);
+        }
+      });
+      return SuccessResponse(arr, 200);
     }
   } catch (error) {
     return ErrorResponse("Something went wrong", 500);
@@ -144,6 +139,9 @@ const fetchUpcomingMatches = async () => {
       `/fixtures?filter[starts_between]=${today},${targetDate}&include=venue,stage,league,visitorteam,localteam`
     );
 
+    // const sql = ``;
+    // await dbConfig()
+
     return SuccessResponse(data.data, 200);
   } catch (error) {
     return ErrorResponse("Something went wrong", 500);
@@ -153,9 +151,46 @@ const fetchUpcomingMatches = async () => {
 const fetchLineUps = async (id: string) => {
   try {
     const data = await instance.get(
-      `/fixtures/${id}?include=lineup`
+      `/fixtures/${id}?include=venue,stage,season,league,visitorteam,localteam,scoreboards,lineup`
     );
-    return SuccessResponse(data.data, 200);
+    const lineup: [] = data.data.lineup;
+
+    if (lineup.length > 0) {
+      return SuccessResponse(data.data, 200);
+    } else {
+      const localteamId = data.data.localteam.id;
+      const visitorteamId = data.data.visitorteam.id;
+
+      const dataLocal = await instance.get(
+        `teams/${localteamId}?include=squad`
+      );
+      const squadLocal = dataLocal.data.squad;
+      const squadLocalFinal = squadLocal.map((player: any) => {
+        return {
+          ...player,
+          lineup: {
+            team_id: localteamId,
+          },
+        };
+      });
+
+      const dataVisitor = await instance.get(
+        `teams/${visitorteamId}?include=squad`
+      );
+      const squadVisitor = dataVisitor.data.squad;
+      const squadVisitorFinal = squadVisitor.map((player: any) => {
+        return {
+          ...player,
+          lineup: {
+            team_id: visitorteamId,
+          },
+        };
+      });
+
+      const combinedSquad = [...squadLocalFinal, ...squadVisitorFinal];
+
+      return SuccessResponse({ ...data.data, lineup: combinedSquad }, 200);
+    }
   } catch (error) {
     return ErrorResponse("Something went wrong", 500);
   }

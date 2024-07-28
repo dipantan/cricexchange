@@ -1,4 +1,6 @@
 export interface Player {
+  country: any;
+  career: any;
   resource: string;
   id: number;
   country_id: number;
@@ -31,3 +33,5 @@ export interface QueryResult<T> {
   results: T[];
   fields: any;
 }
+
+export type Format = "T20" | "ODI" | "Test" | "List_A" | "T10";
