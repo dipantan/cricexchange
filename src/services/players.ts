@@ -1,16 +1,26 @@
+import moment from "moment";
 import dbConfig from "../config/db";
 import instance from "../config/instance";
 import { insertOrUpdatePrice } from "../helpers";
 import { ErrorResponse, SuccessResponse } from "../templates/response";
 import { Metadata, Player } from "../types";
-import { calculateTotalPoints, getRandomNumber } from "../utils";
+import {
+  calculateTotalPoints,
+  getRandomNumber,
+  getThirdPreviousMonthFirstDate,
+} from "../utils";
 
 const fetchPoints = async (id: string) => {
   try {
-    const sql = `select * from players`;
-    const data = await dbConfig(sql);
+    const sql = `select players.id, firstname, lastname, fullname, image_path, dateofbirth, gender, battingstyle, bowlingstyle, career, country, prices.curr_price, prices.updated_at from players inner join prices on players.id = prices.player_id where players.id = ?`;
+    const data: any = await dbConfig(sql, [id]);
     if (data?.constructor === Array && data.length > 0) {
-      return data;
+      const res = {
+        ...data[0],
+        career: JSON.parse(data[0].career),
+        country: JSON.parse(data[0].country),
+      };
+      return SuccessResponse(res, 200);
     } else {
       return ErrorResponse("Something went wrong", 500);
     }
@@ -68,27 +78,28 @@ const fetchAllPlayers = async (
   page?: string,
   search?: string
 ) => {
-  const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
-  let baseSql = "FROM players";
-  const values: any[] = [];
-
-  if (search) {
-    baseSql += " WHERE fullname LIKE ? OR firstname LIKE ? OR lastname LIKE ?";
-    const searchTerm = `%${search}%`;
-    values.push(searchTerm, searchTerm, searchTerm);
-  }
-
-  // Count total number of players matching the search criteria
-  const countSql = `SELECT COUNT(*) AS total ${baseSql}`;
-  const countResult: any = await dbConfig(countSql, values);
-
-  const total = countResult[0]?.total || 0;
-
-  // Fetch the players with limit and offset
-  const sql = `SELECT * ${baseSql} LIMIT ? OFFSET ?`;
-  values.push(parseInt(limit as string), offset);
-
   try {
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    let baseSql = "FROM players";
+    const values: any[] = [];
+
+    if (search) {
+      baseSql +=
+        " WHERE fullname LIKE ? OR firstname LIKE ? OR lastname LIKE ?";
+      const searchTerm = `%${search}%`;
+      values.push(searchTerm, searchTerm, searchTerm);
+    }
+
+    // Count total number of players matching the search criteria
+    const countSql = `SELECT COUNT(*) AS total ${baseSql}`;
+    const countResult: any = await dbConfig(countSql, values);
+
+    const total = countResult[0]?.total || 0;
+
+    // Fetch the players with limit and offset
+    const sql = `SELECT * ${baseSql} LIMIT ? OFFSET ?`;
+    values.push(parseInt(limit as string), offset);
+
     const players = (await dbConfig(sql, values)) as Player[];
     const totalPages = Math.ceil(total / parseInt(limit as string));
     const metadata: Metadata = {
@@ -98,30 +109,49 @@ const fetchAllPlayers = async (
       limit: parseInt(limit as string),
     };
 
-    return { metadata, players };
+    const finalPlayers = players.map((player) => {
+      return {
+        ...player,
+        country: JSON.parse(player.country),
+        career: JSON.parse(player.career),
+      };
+    });
+
+    const response: any = SuccessResponse(finalPlayers, 200);
+    response.metadata = metadata;
+    return response;
   } catch (err) {
     console.error("Error fetching players:", err);
     throw err;
   }
 };
 
+
 const refreshPlayerPrice = async () => {
   try {
     // code to generate price for all players
-    const sql = "select id, career from players";
+    const sql = "SELECT id, career FROM players";
     const data = await dbConfig(sql);
-    if (data.constructor === Array && data.length > 0) {
-      const arr = data.map(async (player: any) => {
+
+    if (Array.isArray(data) && data.length > 0) {
+      const promises = data.map(async (player: any) => {
         const parsedData = JSON.parse(player.career);
+
+        let price;
         if (parsedData.length > 0) {
-          const price = calculateTotalPoints(parsedData, player.id);
-          const result = await insertOrUpdatePrice(player.id, price);
+          price = calculateTotalPoints(parsedData, player.id);
         } else {
-          const price = getRandomNumber(10, 12);
-          const result = await insertOrUpdatePrice(player.id, price);
+          price = getRandomNumber(10, 12);
         }
+
+        const result = await insertOrUpdatePrice(player.id, price);
+        return result;
       });
-      return SuccessResponse(arr, 200);
+
+      const results = await Promise.all(promises);
+      return SuccessResponse(results, 200);
+    } else {
+      return SuccessResponse([], 200); // Return an empty array if no players are found
     }
   } catch (error) {
     return ErrorResponse("Something went wrong", 500);
@@ -196,6 +226,19 @@ const fetchLineUps = async (id: string) => {
   }
 };
 
+const fetchPreviousMatches = async () => {
+  try {
+    const data = await instance.get(
+      `/fixtures?filter[starts_between]=${getThirdPreviousMonthFirstDate()},${moment().format(
+        "YYYY-MM-DD"
+      )}&include=runs,venue,stage,league,visitorteam,localteam,manofseries,manofmatch,tosswon`
+    );
+    return SuccessResponse(data.data?.slice(0, 10), 200);
+  } catch (error) {
+    return ErrorResponse("Something went wrong", 500);
+  }
+};
+
 export {
   fetchPoints,
   setAllPlayers,
@@ -203,4 +246,5 @@ export {
   refreshPlayerPrice,
   fetchUpcomingMatches,
   fetchLineUps,
+  fetchPreviousMatches,
 };

@@ -132,3 +132,25 @@ export const calculateTotalPoints = (player: any[], id?: string) => {
 export function getRandomNumber(min: number, max: number): string {
   return Number(Math.random() * (max - min) + min).toFixed(2);
 }
+
+export function getCurrentTime() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+export function getThirdPreviousMonthFirstDate() {
+  const now = new Date();
+  const thirdPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  const year = thirdPreviousMonth.getFullYear();
+  const month = String(thirdPreviousMonth.getMonth() + 1).padStart(2, "0");
+  const day = String(thirdPreviousMonth.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}

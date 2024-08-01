@@ -6,6 +6,7 @@ import {
   refreshPlayerPrice,
   fetchUpcomingMatches,
   fetchLineUps,
+  fetchPreviousMatches,
 } from "../services/players";
 
 const router = Router();
@@ -17,6 +18,11 @@ router.get("/player/:id", async (req, res) => {
 
 router.get("/upcoming", async (req, res) => {
   const data = await fetchUpcomingMatches();
+  res.send(data);
+});
+
+router.get("/previous", async (req, res) => {
+  const data = await fetchPreviousMatches();
   res.send(data);
 });
 
@@ -37,11 +43,19 @@ router.get("/admin/refreshPlayerPrice", async (req, res) => {
 });
 
 router.get("/all", async (req, res) => {
-  const data = await fetchAllPlayers(
-    req.query.limit?.toString() || "10",
-    req.query.page?.toString() || "1"
-  );
-  res.send(data);
+  try {
+    const limit = req.query.limit?.toString() || "10";
+    const page = req.query.page?.toString() || "1";
+    const search = req.query.search?.toString() || "";
+
+    const data = await fetchAllPlayers(limit, page, search);
+    res.send(data);
+  } catch (err) {
+    console.error("Error fetching players:", err);
+    res
+      .status(500)
+      .send({ error: "An error occurred while fetching players." });
+  }
 });
 
 export default router;
