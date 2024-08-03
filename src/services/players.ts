@@ -3,16 +3,19 @@ import dbConfig from "../config/db";
 import instance from "../config/instance";
 import { insertOrUpdatePrice } from "../helpers";
 import { ErrorResponse, SuccessResponse } from "../templates/response";
-import { Metadata, Player } from "../types";
+import { CartItem, Metadata, Player } from "../types";
 import {
   calculateTotalPoints,
   getRandomNumber,
   getThirdPreviousMonthFirstDate,
 } from "../utils";
 
+import { allrounder, batsman, bowler, keeper } from "../resources/data";
+import { ResultSetHeader } from "mysql2";
+
 const fetchPoints = async (id: string) => {
   try {
-    const sql = `select players.id, firstname, lastname, fullname, image_path, dateofbirth, gender, battingstyle, bowlingstyle, career, country, prices.curr_price, prices.updated_at from players inner join prices on players.id = prices.player_id where players.id = ?`;
+    const sql = `select players.id, firstname, lastname, fullname, image_path, dateofbirth, gender, battingstyle, bowlingstyle, career, country, players.position, prices.curr_price, prices.updated_at from players inner join prices on players.id = prices.player_id where players.id = ?`;
     const data: any = await dbConfig(sql, [id]);
     if (data?.constructor === Array && data.length > 0) {
       const res = {
@@ -36,11 +39,11 @@ const setAllPlayers = async () => {
     if (data?.constructor === Array && data.length > 0) {
       // clear players table
       const sql = `DELETE FROM players`;
-      await dbConfig(sql);
+      await dbConfig(sql, [], true);
       const results = await Promise.all(
         data.map(async (player: Player) => {
           const sql = `
-            INSERT INTO players (id, country_id, firstname, lastname, fullname, image_path, dateofbirth, gender, battingstyle, bowlingstyle, career, country, position_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            INSERT INTO players (id, country_id, firstname, lastname, fullname, image_path, dateofbirth, gender, battingstyle, bowlingstyle, career, country, position, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
           const values = [
             player.id,
@@ -55,7 +58,7 @@ const setAllPlayers = async () => {
             player.bowlingstyle,
             JSON.stringify(player.career),
             JSON.stringify(player.country),
-            player.position.id,
+            player.position,
             player.updated_at,
           ];
 
@@ -67,7 +70,7 @@ const setAllPlayers = async () => {
       return ErrorResponse("Something went wrong", 500);
     }
   } catch (error) {
-    console.error("Error inserting/updating players:", error);
+    // console.error("Error inserting/updating players:", error);
     return ErrorResponse("Something went wrong", 500);
   }
 };
@@ -84,23 +87,20 @@ const fetchAllPlayers = async (
     const values: any[] = [];
 
     if (search) {
-      baseSql +=
-        " WHERE fullname LIKE ? OR firstname LIKE ? OR lastname LIKE ?";
-      const searchTerm = `%${search}%`;
-      values.push(searchTerm, searchTerm, searchTerm);
+      baseSql += ` WHERE fullname LIKE '%${search}%' OR firstname LIKE '%${search}%' OR lastname LIKE '%${search}%'`;
     }
 
     // Count total number of players matching the search criteria
     const countSql = `SELECT COUNT(*) AS total ${baseSql}`;
-    const countResult: any = await dbConfig(countSql, values);
+    const countResult: any = await dbConfig(countSql, []);
 
     const total = countResult[0]?.total || 0;
 
     // Fetch the players with limit and offset
-    const sql = `SELECT * ${baseSql} LIMIT ? OFFSET ?`;
-    values.push(parseInt(limit as string), offset);
+    const sql = `SELECT id, firstname, lastname, fullname, image_path, dateofbirth, gender, battingstyle, bowlingstyle, country, position ${baseSql} LIMIT ${limit} OFFSET ${offset}`;
 
-    const players = (await dbConfig(sql, values)) as Player[];
+    const players: any = await dbConfig(sql, []);
+
     const totalPages = Math.ceil(total / parseInt(limit as string));
     const metadata: Metadata = {
       total,
@@ -109,13 +109,15 @@ const fetchAllPlayers = async (
       limit: parseInt(limit as string),
     };
 
-    const finalPlayers = players.map((player) => {
-      return {
-        ...player,
-        country: JSON.parse(player.country),
-        career: JSON.parse(player.career),
-      };
-    });
+    const finalPlayers = players.map(
+      (player: { country: string; career: string }) => {
+        return {
+          ...player,
+          country: JSON.parse(player.country),
+          // career: JSON.parse(player.career),
+        };
+      }
+    );
 
     const response: any = SuccessResponse(finalPlayers, 200);
     response.metadata = metadata;
@@ -125,7 +127,6 @@ const fetchAllPlayers = async (
     throw err;
   }
 };
-
 
 const refreshPlayerPrice = async () => {
   try {
@@ -161,7 +162,7 @@ const refreshPlayerPrice = async () => {
 const fetchUpcomingMatches = async () => {
   try {
     const today = new Date().toISOString().split("T")[0]; // Today's date
-    const targetDate = new Date(new Date().setDate(new Date().getDate() + 7)) // 7 days from today
+    const targetDate = new Date(new Date().setDate(new Date().getDate() + 30)) // 7 days from today
       .toISOString()
       .split("T")[0];
 
@@ -194,28 +195,32 @@ const fetchLineUps = async (id: string) => {
       const dataLocal = await instance.get(
         `teams/${localteamId}?include=squad`
       );
-      const squadLocal = dataLocal.data.squad;
-      const squadLocalFinal = squadLocal.map((player: any) => {
-        return {
-          ...player,
-          lineup: {
-            team_id: localteamId,
-          },
-        };
-      });
+      const squadLocal: [] = dataLocal.data.squad;
+      const squadLocalFinal = squadLocal
+        .map((player: any) => {
+          return {
+            ...player,
+            lineup: {
+              team_id: localteamId,
+            },
+          };
+        })
+        .slice(0, 11);
 
       const dataVisitor = await instance.get(
         `teams/${visitorteamId}?include=squad`
       );
-      const squadVisitor = dataVisitor.data.squad;
-      const squadVisitorFinal = squadVisitor.map((player: any) => {
-        return {
-          ...player,
-          lineup: {
-            team_id: visitorteamId,
-          },
-        };
-      });
+      const squadVisitor: [] = dataVisitor.data.squad;
+      const squadVisitorFinal = squadVisitor
+        .map((player: any) => {
+          return {
+            ...player,
+            lineup: {
+              team_id: visitorteamId,
+            },
+          };
+        })
+        .slice(0, 11);
 
       const combinedSquad = [...squadLocalFinal, ...squadVisitorFinal];
 
@@ -239,6 +244,129 @@ const fetchPreviousMatches = async () => {
   }
 };
 
+const fetchSections = async () => {
+  return SuccessResponse(
+    {
+      batsman,
+      keeper,
+      bowler,
+      allrounder,
+    },
+    200
+  );
+};
+
+const insertToCart = async (body: CartItem) => {
+  try {
+    if (body.user_id && body.player_id && body.quantity) {
+      // check user_id and player_id exists
+      const user = await dbConfig("select * from user where id = ?", [
+        body.user_id,
+      ]);
+      const player = await dbConfig("select * from players where id = ?", [
+        body.player_id,
+      ]);
+      if (
+        user?.constructor === Array &&
+        user.length > 0 &&
+        player?.constructor === Array &&
+        player.length > 0
+      ) {
+        // check if player and user exists increase quantity to +1
+        const sqlCheck = `select * from cart where user_id = ? and player_id = ?`;
+        const data = await dbConfig(sqlCheck, [body.user_id, body.player_id]);
+        if (data?.constructor === Array && data.length > 0) {
+          const sql = `update cart set quantity = quantity + ${body.quantity} where user_id = ? and player_id = ?`;
+          const values = [body.user_id, body.player_id];
+          await dbConfig(sql, values);
+          return SuccessResponse(
+            {
+              message: "Added to cart successfully",
+              payload: body,
+            },
+            200
+          );
+        } else {
+          const sql = `insert into cart (user_id,player_id,quantity) values (?,?,?)`;
+          const values = [body.user_id, body.player_id, body.quantity];
+          await dbConfig(sql, values);
+          return SuccessResponse(
+            {
+              message: "Added to cart successfully",
+              payload: body,
+            },
+            200
+          );
+        }
+      } else {
+        return ErrorResponse("Something went wrong", 500);
+      }
+    } else {
+      return ErrorResponse("Something went wrong", 500);
+    }
+  } catch (error) {
+    console.log(error);
+    return ErrorResponse("Something went wrong", 500);
+  }
+};
+
+const getCart = async (body: { user_id: number }) => {
+  try {
+    if (body.user_id) {
+      const sql = `select * from cart where user_id = ?`;
+      const data = await dbConfig(sql, [body.user_id]);
+      return SuccessResponse(data, 200);
+    } else {
+      return ErrorResponse("Something went wrong", 500);
+    }
+  } catch (error) {
+    return ErrorResponse("Something went wrong", 500);
+  }
+};
+
+const updateCart = async (body: { id: number; quantity: number }) => {
+  try {
+    const { id, quantity } = body;
+    const sql = `update cart set quantity = ? where id = ?`;
+    const values = [quantity, id];
+    const data: any = await dbConfig(sql, values);
+
+    console.log(data.constructor);
+
+    if (data?.affectedRows > 0) {
+      return SuccessResponse(
+        {
+          message: "Updated successfully",
+          payload: body,
+        },
+        200
+      );
+    } else {
+      return ErrorResponse("Something went wrong", 500);
+    }
+  } catch (error) {
+    console.log(error);
+
+    return ErrorResponse("Something went wrong", 500);
+  }
+};
+
+const deleteCart = async (body: { id: number }) => {
+  try {
+    const { id } = body;
+    const sql = `delete from cart where id = ?`;
+    const data = await dbConfig(sql, [id]);
+    if (data?.constructor === Array && data.length > 0) {
+      return SuccessResponse("Deleted successfully", 200);
+    } else {
+      return ErrorResponse("Something went wrong", 500);
+    }
+  } catch (error) {
+    console.log(error);
+    return ErrorResponse("Something went wrong", 500);
+  }
+};
+
 export {
   fetchPoints,
   setAllPlayers,
@@ -247,4 +375,9 @@ export {
   fetchUpcomingMatches,
   fetchLineUps,
   fetchPreviousMatches,
+  fetchSections,
+  insertToCart,
+  getCart,
+  updateCart,
+  deleteCart,
 };

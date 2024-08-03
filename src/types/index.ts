@@ -34,4 +34,10 @@ export interface QueryResult<T> {
   fields: any;
 }
 
+export interface CartItem {
+  user_id: number;
+  player_id: number;
+  quantity: number;
+}
+
 export type Format = "T20" | "ODI" | "Test" | "List_A" | "T10";

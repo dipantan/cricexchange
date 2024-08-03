@@ -13,7 +13,6 @@ const dbConfig = async (
   values: any[] = [],
   transaction = false
 ) => {
-  console.log(sql, values);
   
   const connection = await pool.getConnection();
   try {
