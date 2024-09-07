@@ -299,6 +299,10 @@ const insertToCart = async (body: CartItem) => {
           );
         }
       } else {
+        // clear cart if user or player not found
+        const sql = `delete from cart where user_id = ? and player_id = ?`;
+        const values = [body.user_id, body.player_id];
+        await dbConfig(sql, values);
         return ErrorResponse("Something went wrong", 500);
       }
     } else {
@@ -321,6 +325,7 @@ const getCart = async (body: { user_id: number }) => {
         players.lastname,
         players.image_path,
         players.country,
+        players.id as player_id,
         prices.curr_price
         FROM
             cart
