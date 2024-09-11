@@ -13,6 +13,7 @@ import {
   updateCart,
   deleteCart,
 } from "../services/players";
+import { ErrorResponse } from "../templates/response";
 
 const router = Router();
 
@@ -58,7 +59,10 @@ router.post("/cart", async (req, res) => {
 });
 
 router.get("/cart", async (req, res) => {
-  const data = await getCart(req.body);
+  const user_id = Number(req.query.id);
+  if (!user_id || isNaN(user_id))
+    return res.send(ErrorResponse("Missing user_id", 400));
+  const data = await getCart(user_id);
   res.send(data);
 });
 

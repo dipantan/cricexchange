@@ -314,9 +314,9 @@ const insertToCart = async (body: CartItem) => {
   }
 };
 
-const getCart = async (body: { user_id: number }) => {
+const getCart = async ( user_id: number ) => {
   try {
-    if (body.user_id) {
+    if (user_id) {
       const sql = `SELECT
         cart.id,
         cart.quantity,
@@ -334,7 +334,7 @@ const getCart = async (body: { user_id: number }) => {
         WHERE
         cart.user_id = ?;
       `;
-      const data = await dbConfig(sql, [body.user_id]);
+      const data = await dbConfig(sql, [user_id]);
       return SuccessResponse(data, 200);
     } else {
       return ErrorResponse("Something went wrong", 500);
