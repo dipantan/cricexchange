@@ -6,6 +6,7 @@ export const pool = mysql.createPool({
   database: process.env.DB_NAME,
   port: parseInt(process.env.DB_PORT || "3306"),
   password: process.env.DB_PASS,
+  multipleStatements: true,
 });
 
 const dbConfig = async (

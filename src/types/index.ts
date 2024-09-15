@@ -35,7 +35,7 @@ export interface QueryResult<T> {
 }
 
 export interface CartItem {
-  user_id: number;
+  id: number;
   player_id: number;
   quantity: number;
 }

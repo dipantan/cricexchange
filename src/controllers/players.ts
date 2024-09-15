@@ -59,9 +59,9 @@ router.post("/cart", async (req, res) => {
 });
 
 router.get("/cart", async (req, res) => {
-  const user_id = Number(req.query.id);
+  const user_id = Number(req.body.id);
   if (!user_id || isNaN(user_id))
-    return res.send(ErrorResponse("Missing user_id", 400));
+    return res.status(400).send(ErrorResponse("Missing user_id", 400));
   const data = await getCart(user_id);
   res.send(data);
 });

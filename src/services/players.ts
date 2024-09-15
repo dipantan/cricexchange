@@ -258,14 +258,13 @@ const fetchSections = async () => {
 
 const insertToCart = async (body: CartItem) => {
   try {
-    if (body.user_id && body.player_id && body.quantity) {
+    if (body.id && body.player_id && body.quantity) {
       // check user_id and player_id exists
-      const user = await dbConfig("select * from user where id = ?", [
-        body.user_id,
-      ]);
+      const user = await dbConfig("select * from user where id = ?", [body.id]);
       const player = await dbConfig("select * from players where id = ?", [
         body.player_id,
       ]);
+
       if (
         user?.constructor === Array &&
         user.length > 0 &&
@@ -274,10 +273,10 @@ const insertToCart = async (body: CartItem) => {
       ) {
         // check if player and user exists increase quantity to +1
         const sqlCheck = `select * from cart where user_id = ? and player_id = ?`;
-        const data = await dbConfig(sqlCheck, [body.user_id, body.player_id]);
+        const data = await dbConfig(sqlCheck, [body.id, body.player_id]);
         if (data?.constructor === Array && data.length > 0) {
           const sql = `update cart set quantity = quantity + ${body.quantity} where user_id = ? and player_id = ?`;
-          const values = [body.user_id, body.player_id];
+          const values = [body.id, body.player_id];
           await dbConfig(sql, values);
           return SuccessResponse(
             {
@@ -288,7 +287,7 @@ const insertToCart = async (body: CartItem) => {
           );
         } else {
           const sql = `insert into cart (user_id,player_id,quantity) values (?,?,?)`;
-          const values = [body.user_id, body.player_id, body.quantity];
+          const values = [body.id, body.player_id, body.quantity];
           await dbConfig(sql, values);
           return SuccessResponse(
             {
@@ -299,22 +298,23 @@ const insertToCart = async (body: CartItem) => {
           );
         }
       } else {
-        // clear cart if user or player not found
-        const sql = `delete from cart where user_id = ? and player_id = ?`;
-        const values = [body.user_id, body.player_id];
-        await dbConfig(sql, values);
         return ErrorResponse("Something went wrong", 500);
       }
     } else {
       return ErrorResponse("Something went wrong", 500);
     }
-  } catch (error) {
-    console.log(error);
+  } catch (error: any) {
+    if ("ER_CHECK_CONSTRAINT_VIOLATED" === error?.code) {
+      // clear cart if user or player not found
+      const sql = `delete from cart where user_id = ? and player_id = ?`;
+      const values = [body.id, body.player_id];
+      await dbConfig(sql, values);
+    }
     return ErrorResponse("Something went wrong", 500);
   }
 };
 
-const getCart = async ( user_id: number ) => {
+const getCart = async (user_id: number) => {
   try {
     if (user_id) {
       const sql = `SELECT
@@ -371,16 +371,16 @@ const updateCart = async (body: { id: number; quantity: number }) => {
   }
 };
 
-const deleteCart = async (body: { id: number }) => {
+const deleteCart = async (body: { cart_id: number }) => {
   try {
-    const { id } = body;
+    const { cart_id } = body;
     const sql = `delete from cart where id = ?`;
-    const data = await dbConfig(sql, [id]);
-    if (data?.constructor === Array && data.length > 0) {
-      return SuccessResponse("Deleted successfully", 200);
-    } else {
+    const data = await dbConfig(sql, [cart_id]);
+    const affectedRows = (data as ResultSetHeader).affectedRows;
+    if (affectedRows === 0) {
       return ErrorResponse("Something went wrong", 500);
     }
+    return SuccessResponse("Deleted successfully", 200);
   } catch (error) {
     console.log(error);
     return ErrorResponse("Something went wrong", 500);

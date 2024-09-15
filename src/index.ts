@@ -2,6 +2,8 @@ import express, { Request, Response } from "express";
 import "dotenv/config";
 import router from "./controllers";
 import path from "path";
+import 'reflect-metadata';
+
 
 // Creating an Express application
 const app = express();

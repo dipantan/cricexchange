@@ -1,4 +1,6 @@
 import { Format } from "../types";
+import { hash, compare } from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 export const calculateBattingPoints = (batting: {
   runs_scored: any;
@@ -154,3 +156,80 @@ export function getThirdPreviousMonthFirstDate() {
 
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Hashes a given password with a randomly generated salt, using a higher number
+ * of salt rounds to increase security but at the cost of slower performance.
+ *
+ * @param {string} password The password to hash.
+ * @return {string} The hashed password.
+ * @throws {Error} If there is an error hashing the password.
+ */
+export async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12; // Higher values increase security but are slower
+  try {
+    const hashedPassword = await hash(password, saltRounds);
+    return hashedPassword;
+  } catch (error) {
+    console.error("Error hashing password:", error);
+    throw error;
+  }
+}
+
+/**
+ * Compares a plain text password to a hashed password.
+ *
+ * @param password The plain text password to compare.
+ * @param hashedPassword The hashed password to compare to.
+ * @returns A boolean indicating whether the passwords match.
+ * @throws An error if the comparison fails.
+ */
+export async function comparePassword(
+  password: string,
+  hashedPassword: string
+) {
+  try {
+    const match = await compare(password, hashedPassword);
+    return match; // true if passwords match, false otherwise
+  } catch (error) {
+    console.error("Error comparing passwords:", error);
+    throw error;
+  }
+}
+
+export const generateLoginToken = (payload: {
+  name: string;
+  mobile: string;
+  id: number;
+}) => {
+  const SECRET_KEY = process.env.SECRET_KEY as jwt.Secret; // Ensure SECRET_KEY is set in your environment variables
+
+  if (!SECRET_KEY) {
+    throw new Error("SECRET_KEY is not defined in environment variables.");
+  }
+
+  return jwt.sign(payload, SECRET_KEY, {
+    expiresIn: "7d", // Token validity period
+    audience: "CricExchange", // Token audience
+    issuer: "CricExchange-Backend", // Token issuer
+    algorithm: "HS256", // Signing algorithm
+    subject: payload.mobile.toString(), // Subject of the token (consider using a unique identifier here)
+  });
+};
+
+export const verifyLoginToken = (token: string) => {
+  const SECRET_KEY = process.env.SECRET_KEY as jwt.Secret; // Ensure SECRET_KEY is set in your environment variables
+
+  if (!SECRET_KEY) {
+    throw new Error("SECRET_KEY is not defined in environment variables.");
+  }
+
+  try {
+    return jwt.verify(token, SECRET_KEY, {
+      audience: "CricExchange", // Verify the audience
+      issuer: "CricExchange-Backend", // Verify the issuer
+    });
+  } catch (error) {
+    throw new Error("Invalid or expired token");
+  }
+};
