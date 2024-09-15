@@ -41,6 +41,15 @@ router.post("/", async ({ body }, res) => {
     // generate order id based on user_id and current datetime
     const order_id = `ORD${body.id}${new Date().getTime()}`;
 
+    // check if player id exists in portfolio data json column
+    const sqlPortfolio = `select data from portfolio where user_id = ?`;
+    const portfolio = await dbConfig(sqlPortfolio, [body.id]);
+    const data = portfolio[0]?.data;
+
+    console.log(JSON.parse(data));
+
+    return;
+
     // insert to order table
     const sql = `insert into orders (user_id, order_id, data, date) values (?, ?, ?, ?)`;
     const values = [
@@ -52,6 +61,7 @@ router.post("/", async ({ body }, res) => {
       new Date().toISOString(),
     ];
 
+    delete checkOutDto.id;
     // update portfolio table
     await dbConfig(
       `update portfolio set data = JSON_ARRAY_APPEND(data, '$', ?) where user_id = ?`,
@@ -61,6 +71,7 @@ router.post("/", async ({ body }, res) => {
           order_id,
           total_price: totalPrice,
           player_price: playerPrice,
+          date: new Date().toISOString(),
         }),
         body.id,
       ],
