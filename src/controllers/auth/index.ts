@@ -64,17 +64,22 @@ router.post("/register", async ({ body }, res) => {
       return res.status(400).send(ErrorResponse("User already exists", 400));
     } else {
       // insert to user table
-      const sql = `insert into user (name, mobile, pass) values (?, ?, ?)`;
+      const sql = `insert into user (name, mobile, pass, date) values (?, ?, ?, ?)`;
       const password = await hashPassword(registerDto.password);
-      const values = [registerDto.name, registerDto.mobile, password];
+      const values = [
+        registerDto.name,
+        registerDto.mobile,
+        password,
+        new Date().toISOString(),
+      ];
       const data = await dbConfig(sql, values, true);
 
       // Cast result to ResultSetHeader for type-checking
       const { affectedRows, insertId } = data as ResultSetHeader;
 
       await dbConfig(
-        `insert into portfolio (user_id, data) values (?, ?)`,
-        [insertId, JSON.stringify([])],
+        `insert into portfolio (user_id, data, date) values (?, CAST('[]' AS JSON), ?)`,
+        [insertId, new Date().toISOString()],
         true
       );
 

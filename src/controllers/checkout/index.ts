@@ -38,17 +38,57 @@ router.post("/", async ({ body }, res) => {
       return res.status(400).send(ErrorResponse("Insufficient balance", 400));
     }
 
-    // generate order id based on user_id and current datetime
-    const order_id = `ORD${body.id}${new Date().getTime()}`;
-
     // check if player id exists in portfolio data json column
     const sqlPortfolio = `select data from portfolio where user_id = ?`;
     const portfolio = await dbConfig(sqlPortfolio, [body.id]);
-    const data = portfolio[0]?.data;
 
-    console.log(JSON.parse(data));
+    const existingPlayer: any = portfolio[0]?.data.find((row: any) => {
+      if (Object.keys(row).length === 0) return false;
 
-    return;
+      return row.player_id == checkOutDto.player_id;
+    });
+
+    // generate order id based on user_id and current datetime
+    const order_id = `ORD${body.id}${new Date().getTime()}`;
+
+    if (existingPlayer) {
+      existingPlayer.order_id += `,${order_id}`;
+      existingPlayer.quantity += checkOutDto.quantity;
+      existingPlayer.total_price += checkOutDto.quantity * playerPrice;
+
+      const total_array = portfolio[0].data?.map((row: any) => {
+        if (row.player_id == checkOutDto.player_id) {
+          return existingPlayer;
+        } else {
+          return row;
+        }
+      });
+
+      // console.log(total_array);
+
+      await dbConfig(
+        `update portfolio set data = CAST (? AS JSON) where user_id = ?`,
+        [JSON.stringify(total_array), body.id],
+        true
+      );
+    } else {
+      delete checkOutDto.id;
+      // update portfolio table
+      await dbConfig(
+        `update portfolio set data = JSON_ARRAY_APPEND(data, '$', CAST(? AS JSON)) where user_id = ?`,
+        [
+          {
+            ...checkOutDto,
+            order_id,
+            total_price: totalPrice,
+          },
+          body.id,
+        ],
+        true
+      );
+    }
+
+    // return;
 
     // insert to order table
     const sql = `insert into orders (user_id, order_id, data, date) values (?, ?, ?, ?)`;
@@ -60,30 +100,14 @@ router.post("/", async ({ body }, res) => {
       }),
       new Date().toISOString(),
     ];
-
-    delete checkOutDto.id;
-    // update portfolio table
-    await dbConfig(
-      `update portfolio set data = JSON_ARRAY_APPEND(data, '$', ?) where user_id = ?`,
-      [
-        JSON.stringify({
-          ...checkOutDto,
-          order_id,
-          total_price: totalPrice,
-          player_price: playerPrice,
-          date: new Date().toISOString(),
-        }),
-        body.id,
-      ],
-      true
-    );
-
     await dbConfig(sql, values, true); // insert to order table
+
+    // deduct from wallet
     await dbConfig(
       `update user set wallet = wallet - ? where id = ?`,
       [totalPrice, body.id],
       true
-    ); // deduct from wallet
+    );
 
     // insert to transactions table
     await dbConfig(

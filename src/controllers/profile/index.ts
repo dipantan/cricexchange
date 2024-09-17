@@ -9,7 +9,7 @@ const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const sql = `select * from user where id = ?`;
+    const sql = `select id,name,email,image,dob,gender,address,wallet,mobile,refer_code from user where id = ?`;
     const values = [req.body.id];
     const data = await dbConfig(sql, values);
     if (data?.constructor === Array && data.length > 0) {
@@ -82,23 +82,18 @@ router.put("/wallet", async (req, res) => {
 
 router.get("/portfolio", async (req, res) => {
   try {
-    const sql = `select data, date from portfolio where user_id = ?`;
+    const sql = `select data from portfolio where user_id = ?`;
     const values = [req.body.id];
-    const data = await dbConfig(sql, values);
-
-    if (data?.constructor === Array && data.length > 0) {
-      const mapped_data = data.map((item: any) => {
-        return {
-          ...item,
-          data: JSON.parse(item.data),
-        };
-      });
-
-      return res.send(SuccessResponse(mapped_data, 200));
-    } else {
-      return res.send(ErrorResponse("Portfolio not found", 400));
+    const row: any = await dbConfig(sql, values);
+    if (row[0].data.length == 0) {
+      return res.send(SuccessResponse([], 200));
     }
+
+    const mapped_data = row?.map((column: any) => column.data);
+
+    return res.send(SuccessResponse(mapped_data, 200));
   } catch (error) {
+    console.log(error);
     res.send(ErrorResponse("Something went wrong", 500));
   }
 });
