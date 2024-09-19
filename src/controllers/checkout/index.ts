@@ -97,6 +97,7 @@ router.post("/", async ({ body }, res) => {
       order_id,
       JSON.stringify({
         ...checkOutDto,
+        amount: totalPrice,
       }),
       new Date().toISOString(),
     ];
@@ -186,7 +187,6 @@ router.post("/sell", async ({ body }, res) => {
     const TOTAL = totalPrice - (GST + PLATFORM_FEE); //final price to be added to wallet
 
     // add to wallet
-
     await dbConfig(
       `update user set wallet = wallet + ? where id = ?`,
       [TOTAL, body.id],
@@ -211,11 +211,14 @@ router.post("/sell", async ({ body }, res) => {
 
     // insert to order table
     await dbConfig(
-      `insert into orders (user_id, order_id, data, date, type) values (?, ?, ?, ?, ?)`,
+      `insert into orders (user_id, order_id, data, date, type) values (?, ?, CAST('?' AS JSON), ?, ?)`,
       [
         body.id,
         order_id,
-        JSON.stringify(checkOutDto),
+        JSON.stringify({
+          ...checkOutDto,
+          amount: TOTAL,
+        }),
         new Date().toISOString(),
         "sell",
       ],
