@@ -131,4 +131,108 @@ router.post("/", async ({ body }, res) => {
   }
 });
 
+router.post("/sell", async ({ body }, res) => {
+  try {
+    const checkOutDto = plainToInstance(CheckoutDto, body);
+    const error = await validate(checkOutDto);
+
+    if (error.length > 0) {
+      const err: any = error.map((err: any) => {
+        return Object.values(err.constraints)[0];
+      });
+      return res.status(400).send(ErrorResponse(err, 400));
+    }
+
+    const user_row = await dbConfig(
+      `select data from portfolio where user_id = ?`,
+      [body.id]
+    );
+
+    const user_portfolio = user_row[0].data;
+
+    if (user_portfolio.length == 0) {
+      return res.send(ErrorResponse("No data found", 400));
+    }
+
+    // find player by id
+    const player = user_portfolio.find((row: any) => {
+      return row.player_id == checkOutDto.player_id;
+    });
+
+    if (!player) {
+      return res.send(ErrorResponse("Invalid player", 400));
+    }
+
+    //  generate order id based on user_id and current datetime
+    const order_id = `ORD${body.id}${new Date().getTime()}`;
+
+    // compare quantity
+    if (player.quantity < checkOutDto.quantity) {
+      return res.send(ErrorResponse("Invalid quantity", 400));
+    }
+
+    // get player current price
+    const playerRow = await dbConfig(
+      `select curr_price from prices where player_id = ?`,
+      [checkOutDto.player_id]
+    );
+
+    const playerPrice = playerRow[0].curr_price; //player current price
+    const totalPrice = checkOutDto.quantity * Number(playerPrice); //price to be added to wallet
+
+    const GST = totalPrice * 0.18; // 18% GST
+    const PLATFORM_FEE = totalPrice * 0.02; // 2% platform fee
+
+    const TOTAL = totalPrice - (GST + PLATFORM_FEE); //final price to be added to wallet
+
+    // add to wallet
+
+    await dbConfig(
+      `update user set wallet = wallet + ? where id = ?`,
+      [TOTAL, body.id],
+      true
+    );
+
+    if (player.quantity == checkOutDto.quantity) {
+      // remove the object from array
+      user_portfolio.splice(user_portfolio.indexOf(player), 1);
+    } else {
+      // update quantity
+      user_portfolio[user_portfolio.indexOf(player)].quantity -=
+        checkOutDto.quantity;
+    }
+
+    // update portfolio table
+    await dbConfig(
+      `update portfolio set data = ? where user_id = ?`,
+      [user_portfolio, body.id],
+      true
+    );
+
+    // insert to order table
+    await dbConfig(
+      `insert into orders (user_id, order_id, data, date, type) values (?, ?, ?, ?, ?)`,
+      [
+        body.id,
+        order_id,
+        JSON.stringify(checkOutDto),
+        new Date().toISOString(),
+        "sell",
+      ],
+      true
+    );
+
+    // insert to transactions table
+    await dbConfig(
+      `insert into transaction (user_id, type, date, message, amount) values (?, ?, ?, ?, ?)`,
+      [body.id, "credit", new Date().toISOString(), "Order placed", TOTAL],
+      true
+    );
+
+    res.send(SuccessResponse("Sell successful", 200));
+  } catch (error) {
+    res.send(ErrorResponse("Something went wrong", 500));
+  }
+});
+
 export default router;
