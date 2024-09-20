@@ -32,8 +32,6 @@ router.post("/", async ({ body }, res) => {
     const playerPrice = priceArr[0]?.curr_price; //player price
     const totalPrice = checkOutDto.quantity * playerPrice; //price to be deducted from wallet
 
-    // console.log(Number(user[0].wallet), totalPrice);
-
     if (Number(user[0].wallet) < totalPrice) {
       return res.status(400).send(ErrorResponse("Insufficient balance", 400));
     }
@@ -63,8 +61,6 @@ router.post("/", async ({ body }, res) => {
           return row;
         }
       });
-
-      // console.log(total_array);
 
       await dbConfig(
         `update portfolio set data = CAST (? AS JSON) where user_id = ?`,
@@ -127,7 +123,6 @@ router.post("/", async ({ body }, res) => {
     //   return res.send(ErrorResponse("Something went wrong", 500));
     // }
   } catch (error) {
-    console.log(error);
     res.send(ErrorResponse("Something went wrong", 500));
   }
 });

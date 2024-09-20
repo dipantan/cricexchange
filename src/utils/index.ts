@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Format } from "../types";
 import { hash, compare } from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -231,5 +232,14 @@ export const verifyLoginToken = (token: string) => {
     });
   } catch (error) {
     throw new Error("Invalid or expired token");
+  }
+};
+
+export const callApiServer = async () => {
+  try {
+    const { data } = await axios.get("https://cricexchange.onrender.com/");
+    return data;
+  } catch (error) {
+    throw new Error("Something went wrong");
   }
 };

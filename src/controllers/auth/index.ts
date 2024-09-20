@@ -6,8 +6,6 @@ import { ErrorResponse, SuccessResponse } from "../../templates/response";
 import dbConfig from "../../config/db";
 import { comparePassword, generateLoginToken, hashPassword } from "../../utils";
 import { ResultSetHeader } from "mysql2";
-import authMiddleware from "../../middlewares/authMiddleware";
-import {} from "jsonwebtoken";
 
 const router = Router();
 
@@ -96,14 +94,5 @@ router.post("/register", async ({ body }, res) => {
     res.send(ErrorResponse("Something went wrong", 500));
   }
 });
-
-// router.post("/logout", authMiddleware, async ({ body }, res) => {
-//   try {
-//     const { token } = body;
-//     console.log(token);
-//   } catch (error) {
-//     res.send(ErrorResponse("Something went wrong", 500));
-//   }
-// });
 
 export default router;

@@ -70,7 +70,6 @@ const setAllPlayers = async () => {
       return ErrorResponse("Something went wrong", 500);
     }
   } catch (error) {
-    // console.error("Error inserting/updating players:", error);
     return ErrorResponse("Something went wrong", 500);
   }
 };
@@ -123,7 +122,6 @@ const fetchAllPlayers = async (
     response.metadata = metadata;
     return response;
   } catch (err) {
-    console.error("Error fetching players:", err);
     throw err;
   }
 };
@@ -350,8 +348,6 @@ const updateCart = async (body: { id: number; quantity: number }) => {
     const sql = `update cart set quantity = ? where id = ?`;
     const values = [quantity, id];
     const data: any = await dbConfig(sql, values);
-
-    console.log(data.constructor);
 
     if (data?.affectedRows > 0) {
       return SuccessResponse(
