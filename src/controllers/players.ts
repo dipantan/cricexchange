@@ -13,7 +13,8 @@ import {
   updateCart,
   deleteCart,
 } from "../services/players";
-import { ErrorResponse } from "../templates/response";
+import { ErrorResponse, SuccessResponse } from "../templates/response";
+import dbConfig from "../config/db";
 
 const router = Router();
 
@@ -88,6 +89,30 @@ router.get("/all", async (req, res) => {
     res
       .status(500)
       .send({ error: "An error occurred while fetching players." });
+  }
+});
+
+router.get("/top_players", async (req, res) => {
+  try {
+    const row = await dbConfig(`
+      select top_players.id, top_players.player_id, top_players.type, top_players.date, players.fullname, players.image_path, players.country, players.gender from top_players inner join players on top_players.player_id = players.id 
+      `);
+    return res.send(SuccessResponse(row, 200));
+  } catch (error) {
+    console.log(error);
+    res.send(ErrorResponse("Something went wrong", 500));
+  }
+});
+
+router.get("/recommended_players", async (req, res) => {
+  try {
+    const row = await dbConfig(`
+      select recommended_players.id, recommended_players.player_id, players.fullname, players.image_path, players.country, players.gender from recommended_players inner join players on recommended_players.player_id = players.id 
+      `);
+    return res.send(SuccessResponse(row, 200));
+  } catch (error) {
+    console.log(error);
+    res.send(ErrorResponse("Something went wrong", 500));
   }
 });
 

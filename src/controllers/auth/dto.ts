@@ -49,7 +49,10 @@ function Is8DigitAlphaNumeric(validationOptions?: ValidationOptions) {
       validator: {
         validate(value: any, args: ValidationArguments) {
           // Check if value is a string and matches the pattern
-          return typeof value === "string" && /^[a-zA-Z0-9]{8}$/.test(value);
+          return (
+            typeof value === "string" &&
+            /^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]{8}$/.test(value)
+          );
         },
         defaultMessage(args: ValidationArguments) {
           return "Value must be an 8-digit alphanumeric string";

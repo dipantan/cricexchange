@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Min,
 } from "class-validator";
 
 export class UpdateProfileDto {
@@ -44,8 +45,12 @@ export class UpdateProfileDto {
 }
 
 export class UpdateWallet {
-  @IsNumber({
-    
-  })
+  @IsNumber({})
+  amount: number;
+}
+
+export class PostWithdraw {
+  @IsNumber()
+  @Min(100)
   amount: number;
 }

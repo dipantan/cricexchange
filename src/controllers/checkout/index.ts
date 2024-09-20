@@ -69,6 +69,7 @@ router.post("/", async ({ body }, res) => {
       );
     } else {
       delete checkOutDto.id;
+
       // update portfolio table
       await dbConfig(
         `update portfolio set data = JSON_ARRAY_APPEND(data, '$', CAST(? AS JSON)) where user_id = ?`,
@@ -84,15 +85,14 @@ router.post("/", async ({ body }, res) => {
       );
     }
 
-    // return;
-
     // insert to order table
     const sql = `insert into orders (user_id, order_id, data, date) values (?, ?, ?, ?)`;
     const values = [
       body.id,
       order_id,
       JSON.stringify({
-        ...checkOutDto,
+        quantity: checkOutDto.quantity,
+        player_id: checkOutDto.player_id,
         amount: totalPrice,
       }),
       new Date().toISOString(),
@@ -211,8 +211,9 @@ router.post("/sell", async ({ body }, res) => {
         body.id,
         order_id,
         JSON.stringify({
-          ...checkOutDto,
-          amount: TOTAL,
+          quantity: checkOutDto.quantity,
+          player_id: checkOutDto.player_id,
+          amount: totalPrice,
         }),
         new Date().toISOString(),
         "sell",
@@ -228,6 +229,19 @@ router.post("/sell", async ({ body }, res) => {
     );
 
     res.send(SuccessResponse("Sell successful", 200));
+  } catch (error) {
+    res.send(ErrorResponse("Something went wrong", 500));
+  }
+});
+
+router.get("/orders", async (req, res) => {
+  try {
+    const row = await dbConfig(
+      `select id, order_id, data, type, date from orders where user_id = ?`,
+      [req.body.id]
+    );
+
+    res.send(SuccessResponse(row, 200));
   } catch (error) {
     res.send(ErrorResponse("Something went wrong", 500));
   }

@@ -18,14 +18,14 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 // Routes
-app.use("/api", router);
-
-app.use("/", (req: Request, res: Response) => {
+app.get("/", (req: Request, res: Response) => {
   res.status(200).send(SuccessResponse("Server is running", 200));
 });
 
+app.use("/api", router);
+
 // Catch-all for 404 errors
-app.use("*", (req: Request, res: Response) => {
+app.get("*", (req: Request, res: Response) => {
   res.status(404).send(ErrorResponse("Page not found", 404));
 });
 

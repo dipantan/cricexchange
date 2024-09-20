@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { ErrorResponse, SuccessResponse } from "../../templates/response";
-import { UpdateProfileDto, UpdateWallet } from "./dto";
+import { PostWithdraw, UpdateProfileDto, UpdateWallet } from "./dto";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import dbConfig from "../../config/db";
@@ -95,6 +95,79 @@ router.get("/portfolio", async (req, res) => {
   } catch (error) {
     console.log(error);
     res.send(ErrorResponse("Something went wrong", 500));
+  }
+});
+
+router.get("/wallet", async (req, res) => {
+  try {
+    const { type } = req.query;
+
+    if (!type) {
+      const row = await dbConfig(
+        `select * from transaction where user_id = ?`,
+        [req.body.id]
+      );
+      return res.send(SuccessResponse(row, 200));
+    } else if (type !== "credit" && type !== "debit") {
+      throw new Error("Type can be only credit or debit");
+    } else {
+      const row = await dbConfig(
+        `select * from transaction where user_id = ? and type = ?`,
+        [req.body.id, type]
+      );
+      return res.send(SuccessResponse(row, 200));
+    }
+  } catch (error) {
+    res.send(ErrorResponse(error.message || "Something went wrong", 500));
+  }
+});
+
+router.post("/withdraw", async (req, res) => {
+  try {
+    const withdrawDto = plainToInstance(PostWithdraw, req.body);
+    const error = await validate(withdrawDto);
+    if (error.length > 0) {
+      const err: any = error.map((err: any) => {
+        return Object.values(err.constraints)[0];
+      });
+      return res.status(400).send(ErrorResponse(err, 400));
+    }
+
+    // check if amount is greater than user wallet
+    const user = await dbConfig("select * from user where id = ?", [
+      req.body.id,
+    ]);
+    if (user[0].wallet < withdrawDto.amount) {
+      return res.status(400).send(ErrorResponse("Insufficient balance", 400));
+    }
+
+    const insertWithdrawal = await dbConfig(
+      `insert into withdrawal_requests (user_id, amount, date) values (?, ?, ?)`,
+      [req.body.id, withdrawDto.amount, new Date().toISOString()],
+      true
+    );
+
+    const updateWallet = await dbConfig(
+      `update user set wallet = wallet - ? where id = ?`,
+      [withdrawDto.amount, req.body.id],
+      true
+    );
+
+    const insertTransaction = await dbConfig(
+      `insert into transaction (user_id, type, date, message, amount) values (?, ?, ?, ?, ?)`,
+      [
+        req.body.id,
+        "debit",
+        new Date().toISOString(),
+        "Withdrawal request",
+        withdrawDto.amount,
+      ],
+      true
+    );
+
+    res.send(SuccessResponse("Withdrawal request sent successfully", 200));
+  } catch (error) {
+    res.send(ErrorResponse(error.message || "Something went wrong", 500));
   }
 });
 
