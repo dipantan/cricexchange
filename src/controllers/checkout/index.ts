@@ -206,7 +206,7 @@ router.post("/sell", async ({ body }, res) => {
 
     // insert to order table
     await dbConfig(
-      `insert into orders (user_id, order_id, data, date, type) values (?, ?, CAST('?' AS JSON), ?, ?)`,
+      `insert into orders (user_id, order_id, data, date, type) values (?, ?, CAST(? AS JSON), ?, ?)`,
       [
         body.id,
         order_id,
@@ -230,6 +230,8 @@ router.post("/sell", async ({ body }, res) => {
 
     res.send(SuccessResponse("Sell successful", 200));
   } catch (error) {
+    console.log(error);
+
     res.send(ErrorResponse("Something went wrong", 500));
   }
 });
