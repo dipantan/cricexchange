@@ -195,6 +195,10 @@ router.post("/sell", async ({ body }, res) => {
       // update quantity
       user_portfolio[user_portfolio.indexOf(player)].quantity -=
         checkOutDto.quantity;
+
+      // update total price
+      user_portfolio[user_portfolio.indexOf(player)].total_price -=
+        checkOutDto.quantity * Number(playerPrice);
     }
 
     // update portfolio table
