@@ -107,7 +107,7 @@ router.get("/top_players", async (req, res) => {
 router.get("/recommended_players", async (req, res) => {
   try {
     const row = await dbConfig(`
-      select recommended_players.id, recommended_players.player_id, players.fullname, players.image_path, players.country, players.gender from recommended_players inner join players on recommended_players.player_id = players.id 
+      select recommended_players.id, recommended_players.player_id, players.position, players.fullname, players.image_path, players.country, players.gender from recommended_players inner join players on recommended_players.player_id = players.id 
       `);
     return res.send(SuccessResponse(row, 200));
   } catch (error) {
