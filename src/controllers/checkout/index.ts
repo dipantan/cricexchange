@@ -236,12 +236,41 @@ router.post("/sell", async ({ body }, res) => {
 
 router.get("/orders", async (req, res) => {
   try {
-    const row = await dbConfig(
+    const rows = await dbConfig(
       `select id, order_id, data, type, date from orders where user_id = ?`,
       [req.body.id]
     );
 
-    res.send(SuccessResponse(row, 200));
+    if (rows.constructor === Array) {
+      if (rows.length == 0) {
+        return res.send(SuccessResponse([], 200));
+      } else {
+        const mapped_rows = await Promise.all(
+          rows.map(async (row: any) => {
+            const data = row.data;
+
+            // const sql = `select curr_price from prices where player_id = ?`;
+            // const price = await dbConfig(sql, [data.player_id]);
+
+            const player_sql = `select fullname, image_path, country, position from players where id = ?`;
+            const player = await dbConfig(player_sql, [data.player_id]);
+
+            return {
+              ...row,
+              data: {
+                ...data,
+                // curr_price: price[0].curr_price,
+                ...player[0],
+              },
+            };
+          })
+        );
+
+        return res.send(SuccessResponse(mapped_rows, 200));
+      }
+    }
+
+    // res.send(SuccessResponse(row, 200));
   } catch (error) {
     res.send(ErrorResponse("Something went wrong", 500));
   }

@@ -89,7 +89,21 @@ router.get("/portfolio", async (req, res) => {
       return res.send(SuccessResponse([], 200));
     }
 
-    const mapped_data = row?.map((column: any) => column.data);
+    const mapped_data = await Promise.all(
+      row[0]?.data?.map(async (column: any) => {
+        delete column.token;
+        const player_id = column.player_id;
+
+        const sql = `select players.id, players.firstname, players.lastname, players.image_path, players.country, players.position, prices.curr_price from players inner join prices on players.id = prices.player_id where players.id = ?`;
+
+        const data = await dbConfig(sql, [player_id]);
+        if (data?.constructor === Array && data.length > 0) {
+          column.player_details = data[0];
+        }
+
+        return column;
+      })
+    );
 
     return res.send(SuccessResponse(mapped_data, 200));
   } catch (error) {
