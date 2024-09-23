@@ -12,18 +12,42 @@ import {
 
 import { allrounder, batsman, bowler, keeper } from "../resources/data";
 import { ResultSetHeader } from "mysql2";
+import { Request } from "express";
 
-const fetchPoints = async (id: string) => {
+const fetchPoints = async (req: Request) => {
   try {
     const sql = `select players.id, firstname, lastname, fullname, image_path, dateofbirth, gender, battingstyle, bowlingstyle, career, country, players.position, prices.curr_price, prices.updated_at from players inner join prices on players.id = prices.player_id where players.id = ?`;
-    const data: any = await dbConfig(sql, [id]);
+    const data: any = await dbConfig(sql, [req.params.id]);
     if (data?.constructor === Array && data.length > 0) {
-      const res = {
-        ...data[0],
-        career: JSON.parse(data[0].career),
-        country: JSON.parse(data[0].country),
-      };
-      return SuccessResponse(res, 200);
+      const sql = `select data from portfolio where user_id = ?`;
+      const query = (await dbConfig(sql, [req.body.id])) as any;
+
+      const result =
+        query.constructor === Array && query.length > 0 ? query[0].data : [];
+
+      //  filter array based on player id
+      const filtered = result.filter(
+        (item: any) => item.player_id == req.params.id
+      );
+
+      if (filtered.length > 0) {
+        delete filtered[0].token;
+        const res = {
+          ...data[0],
+          career: JSON.parse(data[0].career),
+          country: JSON.parse(data[0].country),
+          portfolio: filtered[0],
+        };
+        return SuccessResponse(res, 200);
+      } else {
+        const res = {
+          ...data[0],
+          career: JSON.parse(data[0].career),
+          country: JSON.parse(data[0].country),
+          portfolio: [],
+        };
+        return SuccessResponse(res, 200);
+      }
     } else {
       return ErrorResponse("Something went wrong", 500);
     }

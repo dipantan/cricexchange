@@ -54,3 +54,26 @@ export class PostWithdraw {
   @Min(100)
   amount: number;
 }
+
+export class PostBank {
+  @IsString()
+  @IsNotEmpty()
+  account_name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  account_number: string;
+
+  @IsString()
+  @IsNotEmpty()
+  ifsc: string;
+
+  @IsString()
+  @IsNotEmpty()
+  bank_name: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  pancard: string;
+}

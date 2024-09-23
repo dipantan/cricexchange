@@ -19,7 +19,7 @@ import dbConfig from "../config/db";
 const router = Router();
 
 router.get("/player/:id", async (req, res) => {
-  const data = await fetchPoints(req.params.id);
+  const data = await fetchPoints(req);
   res.send(data);
 });
 

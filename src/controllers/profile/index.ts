@@ -1,15 +1,16 @@
 import { Router } from "express";
 import { ErrorResponse, SuccessResponse } from "../../templates/response";
-import { PostWithdraw, UpdateProfileDto, UpdateWallet } from "./dto";
+import { PostBank, PostWithdraw, UpdateProfileDto, UpdateWallet } from "./dto";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import dbConfig from "../../config/db";
+import { ResultSetHeader } from "mysql2";
 
 const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const sql = `select id,name,email,image,dob,gender,address,wallet,mobile,refer_code from user where id = ?`;
+    const sql = `select id,name,email,image,dob,gender,address,wallet,mobile,refer_code,bank, pancard, isBankVerified, isPanVerified from user where id = ?`;
     const values = [req.body.id];
     const data = await dbConfig(sql, values);
     if (data?.constructor === Array && data.length > 0) {
@@ -18,6 +19,8 @@ router.get("/", async (req, res) => {
       return res.send(ErrorResponse("User not found", 400));
     }
   } catch (error) {
+    console.log(error);
+
     res.send(ErrorResponse("Something went wrong", 500));
   }
 });
@@ -118,7 +121,7 @@ router.get("/wallet", async (req, res) => {
 
     if (!type) {
       const row = await dbConfig(
-        `select * from transaction where user_id = ?`,
+        `select * from transaction where user_id = ? order by date desc`,
         [req.body.id]
       );
       return res.send(SuccessResponse(row, 200));
@@ -126,7 +129,7 @@ router.get("/wallet", async (req, res) => {
       throw new Error("Type can be only credit or debit");
     } else {
       const row = await dbConfig(
-        `select * from transaction where user_id = ? and type = ?`,
+        `select * from transaction where user_id = ? and type = ? order by date desc`,
         [req.body.id, type]
       );
       return res.send(SuccessResponse(row, 200));
@@ -145,6 +148,17 @@ router.post("/withdraw", async (req, res) => {
         return Object.values(err.constraints)[0];
       });
       return res.status(400).send(ErrorResponse(err, 400));
+    }
+
+    // fetch bank details
+    const bank = await dbConfig(`select bank from user where id = ?`, [
+      req.body.id,
+    ]);
+
+    if (!bank[0].bank) {
+      return res
+        .status(400)
+        .send(ErrorResponse("Please add bank details first", 400));
     }
 
     // check if amount is greater than user wallet
@@ -180,6 +194,39 @@ router.post("/withdraw", async (req, res) => {
     );
 
     res.send(SuccessResponse("Withdrawal request sent successfully", 200));
+  } catch (error) {
+    res.send(ErrorResponse(error.message || "Something went wrong", 500));
+  }
+});
+
+router.post("/bank", async (req, res) => {
+  try {
+    const postBank = plainToInstance(PostBank, req.body);
+    const error = await validate(postBank);
+
+    if (error.length > 0) {
+      const err: any = error.map((err: any) => {
+        return Object.values(err.constraints)[0];
+      });
+      return res.status(400).send(ErrorResponse(err, 400));
+    }
+
+    const insertBank = (await dbConfig(
+      `update user set bank = ? where id = ?`,
+      [JSON.stringify(postBank), req.body.id],
+      true
+    )) as ResultSetHeader;
+
+    const insertPan = (await dbConfig(
+      `update user set pancard = ? where id = ?`,
+      [postBank.pancard || null, req.body.id],
+      true
+    )) as ResultSetHeader;
+
+    if (insertBank.affectedRows == 0 || insertPan.affectedRows == 0) {
+      return res.status(400).send(ErrorResponse("Something went wrong", 400));
+    }
+    res.send(SuccessResponse("Bank details updated successfully", 200));
   } catch (error) {
     res.send(ErrorResponse(error.message || "Something went wrong", 500));
   }
