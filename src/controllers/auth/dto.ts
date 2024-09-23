@@ -15,8 +15,9 @@ export class LoginDto {
 
   @IsString()
   @IsNotEmpty()
-  @Is8DigitAlphaNumeric({
-    message: "Password must be an 8-digit alphanumeric string",
+  @Is8DigitAlphaNumericWithSpecialChar({
+    message:
+      "Value must be an 8-character string containing letters, numbers, and at least one special character",
   })
   password!: string;
 }
@@ -32,16 +33,26 @@ export class RegisterDto {
   mobile!: number;
 
   @IsNotEmpty()
-  @Is8DigitAlphaNumeric({
-    message: "Password must be an 8-digit alphanumeric string",
+  @Is8DigitAlphaNumericWithSpecialChar({
+    message:
+      "Value must be an 8-character string containing letters, numbers, and at least one special character",
   })
   password!: string;
 }
 
-function Is8DigitAlphaNumeric(validationOptions?: ValidationOptions) {
+/**
+ * Validator for checking if a string is an 8-character alphanumeric string containing at
+ * least one special character.
+ *
+ * @param validationOptions Optional validation options.
+ * @returns A decorator function that can be used to validate a class property.
+ */
+function Is8DigitAlphaNumericWithSpecialChar(
+  validationOptions?: ValidationOptions
+) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
-      name: "is8DigitAlphaNumeric",
+      name: "is8DigitAlphaNumericWithSpecialChar",
       target: object.constructor,
       propertyName: propertyName,
       options: validationOptions,
@@ -51,11 +62,13 @@ function Is8DigitAlphaNumeric(validationOptions?: ValidationOptions) {
           // Check if value is a string and matches the pattern
           return (
             typeof value === "string" &&
-            /^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]{8}$/.test(value)
+            /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8}$/.test(
+              value
+            )
           );
         },
         defaultMessage(args: ValidationArguments) {
-          return "Value must be an 8-digit alphanumeric string";
+          return "Value must be an 8-character string containing letters, numbers, and at least one special character.";
         },
       },
     });

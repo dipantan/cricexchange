@@ -136,7 +136,7 @@ const refreshPlayerPrice = async () => {
       const promises = data.map(async (player: any) => {
         const parsedData = JSON.parse(player.career);
 
-        let price;
+        let price: string | number;
         if (parsedData.length > 0) {
           price = calculateTotalPoints(parsedData, player.id);
         } else {
