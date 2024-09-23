@@ -17,7 +17,7 @@ export class LoginDto {
   @IsNotEmpty()
   @Is8DigitAlphaNumericWithSpecialChar({
     message:
-      "Value must be an 8-character string containing letters, numbers, and at least one special character",
+      "Value must be at least 8-character string containing letters, numbers, and at least one special character",
   })
   password!: string;
 }
@@ -35,7 +35,7 @@ export class RegisterDto {
   @IsNotEmpty()
   @Is8DigitAlphaNumericWithSpecialChar({
     message:
-      "Value must be an 8-character string containing letters, numbers, and at least one special character",
+      "Value must be at least 8-character string containing letters, numbers, and at least one special character",
   })
   password!: string;
 }
@@ -62,13 +62,13 @@ function Is8DigitAlphaNumericWithSpecialChar(
           // Check if value is a string and matches the pattern
           return (
             typeof value === "string" &&
-            /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8}$/.test(
+            /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/.test(
               value
             )
           );
         },
         defaultMessage(args: ValidationArguments) {
-          return "Value must be an 8-character string containing letters, numbers, and at least one special character.";
+          return "Value must be at least 8-character string containing letters, numbers, and at least one special character.";
         },
       },
     });
