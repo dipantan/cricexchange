@@ -180,6 +180,7 @@ router.post("/sell", async ({ body }, res) => {
     const PLATFORM_FEE = totalPrice * 0.02; // 2% platform fee
 
     const TOTAL = totalPrice - (GST + PLATFORM_FEE); //final price to be added to wallet
+    let profit = 0;
 
     // add to wallet
     await dbConfig(
@@ -192,19 +193,26 @@ router.post("/sell", async ({ body }, res) => {
       // remove the object from array
       user_portfolio.splice(user_portfolio.indexOf(player), 1);
     } else {
-      // update quantity
       user_portfolio[user_portfolio.indexOf(player)].quantity -=
-        checkOutDto.quantity;
+        checkOutDto.quantity; // reduce by 5
 
-      // update total price
-      const remaining_quantity = player.quantity - checkOutDto.quantity; // 8 - 4
-      const average_price = Number(playerPrice) * remaining_quantity; // 25 * 4 = 100
+      const previous_total_price = player.total_price;
 
+      // Step 2: Calculate average cost per stock (based on purchase price, not market price)
+      const average_price_per_stock = previous_total_price / player.quantity; // 144 / 8 = 18
+
+      // Step 3: Calculate the cost of the stocks sold (cost basis, not market price)
+      const cost_of_sold_stocks =
+        average_price_per_stock * checkOutDto.quantity; // 18 * 5 = 90
+
+      // Step 4: Update the total price of the remaining stocks (cost basis, not market price)
       user_portfolio[user_portfolio.indexOf(player)].total_price =
-        average_price;
+        previous_total_price - cost_of_sold_stocks; // 144 - 90 = 54
 
-      // user_portfolio[user_portfolio.indexOf(player)].total_price -=
-      //   checkOutDto.quantity * Number(playerPrice);
+      // Step 5 (Optional): Calculate profit if you're selling at a higher market price
+      const market_price_per_stock = Number(playerPrice); // Assume this is 25 (market price)
+      const total_selling_price = market_price_per_stock * checkOutDto.quantity; // 25 * 5 = 125
+      profit = total_selling_price - cost_of_sold_stocks; // 125 - 90 = 35
     }
 
     // update portfolio table
@@ -224,6 +232,7 @@ router.post("/sell", async ({ body }, res) => {
           quantity: checkOutDto.quantity,
           player_id: checkOutDto.player_id,
           amount: totalPrice,
+          profit,
         }),
         new Date().toISOString(),
         "sell",
