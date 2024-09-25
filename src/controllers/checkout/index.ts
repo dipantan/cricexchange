@@ -197,8 +197,14 @@ router.post("/sell", async ({ body }, res) => {
         checkOutDto.quantity;
 
       // update total price
-      user_portfolio[user_portfolio.indexOf(player)].total_price -=
-        checkOutDto.quantity * Number(playerPrice);
+      const remaining_quantity = player.quantity - checkOutDto.quantity; // 8 - 4
+      const average_price = Number(playerPrice) * remaining_quantity; // 25 * 4 = 100
+
+      user_portfolio[user_portfolio.indexOf(player)].total_price =
+        average_price;
+
+      // user_portfolio[user_portfolio.indexOf(player)].total_price -=
+      //   checkOutDto.quantity * Number(playerPrice);
     }
 
     // update portfolio table

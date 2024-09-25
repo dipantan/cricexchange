@@ -29,23 +29,25 @@ const upload = multer({
 
 const router = Router();
 
-router.post(
-  "/banner",
-  upload.single("file"),
-  async (req: Request, res: Response) => {
-    try {
-      const sql = `insert into banner (name,img,date) values (?,?,?)`;
-      const values = [req.file?.filename, req.file?.path, getCurrentTime()];
-      await dbConfig(sql, values);
-      res.send(SuccessResponse("Banner uploaded successfully", 200));
-    } catch (error) {
-      console.log(error);
-      res.send(ErrorResponse("Something went wrong", 500));
-    }
-  }
-);
+// router.post(
+//   "/banner",
+//   upload.single("file"),
+//   async (req: Request, res: Response) => {
+//     try {
+//       const sql = `insert into banner (name,img,date) values (?,?,?)`;
+//       const values = [req.file?.filename, req.file?.path, getCurrentTime()];
+//       await dbConfig(sql, values);
+//       res.send(SuccessResponse("Banner uploaded successfully", 200));
+//     } catch (error) {
+//       console.log(error);
+//       res.send(ErrorResponse("Something went wrong", 500));
+//     }
+//   }
+// );
 
 router.get("/banner", async (req: Request, res: Response) => {
+  console.log(req.body);
+  
   try {
     const sql = `select * from banner`;
     const data = await dbConfig(sql);
