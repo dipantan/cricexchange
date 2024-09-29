@@ -22,7 +22,7 @@ const fetchPoints = async (req: Request) => {
       const sql = `select data from portfolio where user_id = ?`;
       const query = (await dbConfig(sql, [req.body.id])) as any;
 
-      const sqlPriceHistory = `select price, updated_at from player_history where player_id=? order by updated_at desc limit 7`;
+      const sqlPriceHistory = `SELECT price, MAX(updated_at) AS updated_at FROM player_history WHERE player_id = ? GROUP BY price ORDER BY updated_at DESC;`;
       const priceHistoryQuery = await dbConfig(sqlPriceHistory, [
         req.params.id,
       ]);

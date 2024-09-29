@@ -52,8 +52,6 @@ router.post(
 );
 
 router.get("/banner", async (req: Request, res: Response) => {
-  console.log(req.body);
-
   try {
     const sql = `select * from banner`;
     const data = await dbConfig(sql);
