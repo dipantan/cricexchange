@@ -232,4 +232,25 @@ router.post("/bank", async (req, res) => {
   }
 });
 
+router.post("/add-money", async (req, res) => {
+  try {
+    if (!req.body.amount || req.body.amount <= 0) {
+      return res.status(400).send(ErrorResponse("Amount is required", 400));
+    }
+
+    const updateWallet = (await dbConfig(
+      `update user set wallet = wallet + ? where id = ?`,
+      [req.body.amount, req.body.id],
+      true
+    )) as ResultSetHeader;
+
+    if (updateWallet.affectedRows == 0) {
+      return res.status(400).send(ErrorResponse("Something went wrong", 400));
+    }
+    res.send(SuccessResponse("Money added successfully", 200));
+  } catch (error) {
+    res.send(ErrorResponse(error.message || "Something went wrong", 500));
+  }
+});
+
 export default router;

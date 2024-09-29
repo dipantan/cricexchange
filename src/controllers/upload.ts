@@ -3,7 +3,7 @@ import multer from "multer";
 import path from "path";
 import dbConfig from "../config/db";
 import { ErrorResponse, SuccessResponse } from "../templates/response";
-import { getCurrentTime } from "../utils";
+import { verifyLoginToken } from "../utils";
 
 // Configure storage to save with original name
 const storage = multer.diskStorage({
@@ -29,25 +29,31 @@ const upload = multer({
 
 const router = Router();
 
-// router.post(
-//   "/banner",
-//   upload.single("file"),
-//   async (req: Request, res: Response) => {
-//     try {
-//       const sql = `insert into banner (name,img,date) values (?,?,?)`;
-//       const values = [req.file?.filename, req.file?.path, getCurrentTime()];
-//       await dbConfig(sql, values);
-//       res.send(SuccessResponse("Banner uploaded successfully", 200));
-//     } catch (error) {
-//       console.log(error);
-//       res.send(ErrorResponse("Something went wrong", 500));
-//     }
-//   }
-// );
+router.post(
+  "/image",
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    if (!req.file) {
+      return res.send(ErrorResponse("File not found", 400));
+    }
+    const token = req.headers.authorization.split(" ")[1];
+    const decoded = verifyLoginToken(token) as { id: string; mobile: string };
+
+    try {
+      const sql = `update user set image = ? where id = ?`;
+      const values = [req.file?.path, decoded.id];
+      await dbConfig(sql, values);
+      res.send(SuccessResponse("Profile uploaded successfully", 200));
+    } catch (error) {
+      console.log(error);
+      res.send(ErrorResponse("Something went wrong", 500));
+    }
+  }
+);
 
 router.get("/banner", async (req: Request, res: Response) => {
   console.log(req.body);
-  
+
   try {
     const sql = `select * from banner`;
     const data = await dbConfig(sql);
