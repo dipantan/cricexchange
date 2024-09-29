@@ -196,10 +196,11 @@ router.post("/sell", async ({ body }, res) => {
       user_portfolio[user_portfolio.indexOf(player)].quantity -=
         checkOutDto.quantity; // reduce by 5
 
-      const previous_total_price = player.total_price;
+      const previous_total_price = Number(player.total_price);
 
       // Step 2: Calculate average cost per stock (based on purchase price, not market price)
-      const average_price_per_stock = previous_total_price / player.quantity; // 144 / 8 = 18
+      const average_price_per_stock =
+        previous_total_price / Number(player.quantity); // 144 / 8 = 18
 
       // Step 3: Calculate the cost of the stocks sold (cost basis, not market price)
       const cost_of_sold_stocks =
