@@ -95,7 +95,7 @@ router.get("/all", async (req, res) => {
 router.get("/top_players", async (req, res) => {
   try {
     const row = await dbConfig(`
-      select top_players.id, top_players.player_id, top_players.type, top_players.date, players.fullname, players.image_path, players.country, players.gender from top_players inner join players on top_players.player_id = players.id 
+      select top_players.id,players.firstname, players.lastname, players.position, top_players.player_id, top_players.type, top_players.date, players.fullname, players.image_path, players.country, players.gender, prices.curr_price from top_players inner join players on top_players.player_id = players.id inner join prices on top_players.player_id = prices.player_id 
       `);
     return res.send(SuccessResponse(row, 200));
   } catch (error) {
@@ -107,7 +107,7 @@ router.get("/top_players", async (req, res) => {
 router.get("/recommended_players", async (req, res) => {
   try {
     const row = await dbConfig(`
-      select recommended_players.id, recommended_players.player_id, players.position, players.fullname, players.image_path, players.country, players.gender from recommended_players inner join players on recommended_players.player_id = players.id 
+      select recommended_players.id, recommended_players.player_id, players.position, players.fullname, players.image_path, players.country, players.gender, prices.curr_price from recommended_players inner join players on recommended_players.player_id = players.id  inner join prices on recommended_players.player_id = prices.player_id
       `);
     return res.send(SuccessResponse(row, 200));
   } catch (error) {

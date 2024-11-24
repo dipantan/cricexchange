@@ -13,6 +13,7 @@ import {
 import { allrounder, batsman, bowler, keeper } from "../resources/data";
 import { ResultSetHeader } from "mysql2";
 import { Request } from "express";
+import { log } from "node:console";
 
 const fetchPoints = async (req: Request) => {
   try {
@@ -118,7 +119,8 @@ const fetchAllPlayers = async (
 ) => {
   try {
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
-    let baseSql = "FROM players";
+    let baseSql =
+      "FROM players INNER JOIN prices ON players.id = prices.player_id";
     const values: any[] = [];
 
     if (search) {
@@ -132,7 +134,7 @@ const fetchAllPlayers = async (
     const total = countResult[0]?.total || 0;
 
     // Fetch the players with limit and offset
-    const sql = `SELECT id, firstname, lastname, fullname, image_path, dateofbirth, gender, battingstyle, bowlingstyle, country, position ${baseSql} LIMIT ${limit} OFFSET ${offset}`;
+    const sql = `SELECT players.id, players.firstname, players.lastname, players.fullname, players.image_path, players.dateofbirth, players.gender, players.battingstyle, players.bowlingstyle, players.country, players.position, prices.curr_price ${baseSql} LIMIT ${limit} OFFSET ${offset}`;
 
     const players: any = await dbConfig(sql, []);
 
@@ -158,6 +160,7 @@ const fetchAllPlayers = async (
     response.metadata = metadata;
     return response;
   } catch (err) {
+    console.log(err);
     throw err;
   }
 };
