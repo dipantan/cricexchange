@@ -244,6 +244,19 @@ router.post("/add-money", async (req, res) => {
       true
     )) as ResultSetHeader;
 
+
+    const insertTransaction = await dbConfig(
+      `insert into transaction (user_id, type, date, message, amount) values (?, ?, ?, ?, ?)`,
+      [
+        req.body.id,
+        "credit",
+        new Date().toISOString(),
+        "Money added",
+        req.body.amount,
+      ],
+      true
+    );
+
     if (updateWallet.affectedRows == 0) {
       return res.status(400).send(ErrorResponse("Something went wrong", 400));
     }

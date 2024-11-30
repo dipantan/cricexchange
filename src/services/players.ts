@@ -282,6 +282,11 @@ const fetchPreviousMatches = async () => {
 };
 
 const fetchSections = async () => {
+
+  
+
+
+
   return SuccessResponse(
     {
       batsman,
