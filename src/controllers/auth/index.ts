@@ -34,7 +34,7 @@ router.post("/login", async ({ body }, res) => {
         name: user[0].name,
         id: user[0].id,
       });
-      return res.send(SuccessResponse({ token }, 200));
+      return res.send(SuccessResponse({ token, name: user[0].name }, 200));
     } else {
       return res.status(400).send(ErrorResponse("Invalid credentials", 400));
     }
