@@ -1,4 +1,4 @@
-const ErrorResponse = (message: string, status: number) => {
+const ErrorResponse = (message: string | any, status: number) => {
   return {
     success: false,
     message,

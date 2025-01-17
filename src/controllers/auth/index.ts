@@ -36,10 +36,10 @@ router.post("/login", async ({ body }, res) => {
       });
       return res.send(SuccessResponse({ token, name: user[0].name }, 200));
     } else {
-      return res.status(400).send(ErrorResponse("Invalid credentials", 400));
+      return res.status(400).send(ErrorResponse(["Invalid credentials"], 400));
     }
   } else {
-    return res.status(400).send(ErrorResponse("User not found", 400));
+    return res.status(400).send(ErrorResponse(["User not found"], 400));
   }
 });
 
@@ -61,7 +61,7 @@ router.post("/register", async ({ body }, res) => {
     ]);
 
     if (user?.constructor === Array && user.length > 0) {
-      return res.status(400).send(ErrorResponse("User already exists", 400));
+      return res.status(400).send(ErrorResponse(["User already exists"], 400));
     } else {
       // insert to user table
       const sql = `insert into user (name, mobile, pass, date) values (?, ?, ?, ?)`;
@@ -86,12 +86,12 @@ router.post("/register", async ({ body }, res) => {
       if (affectedRows > 0) {
         return res.send(SuccessResponse("User registered successfully", 200));
       } else {
-        return res.send(ErrorResponse("Something went wrong", 500));
+        return res.send(ErrorResponse(["Something went wrong"], 500));
       }
     }
   } catch (error) {
     console.log(error);
-    res.send(ErrorResponse("Something went wrong", 500));
+    res.send(ErrorResponse(["Something went wrong"], 500));
   }
 });
 
