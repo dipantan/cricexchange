@@ -39,11 +39,6 @@ router.get("/upcoming/:id", async (req, res) => {
   res.send(data);
 });
 
-router.get("/section", async (req, res) => {
-  const data = await fetchSections();
-  res.send(data);
-});
-
 router.get("/admin/refreshPlayerData", async (req, res) => {
   const data = await setAllPlayers();
   res.send(data);
@@ -114,6 +109,11 @@ router.get("/recommended_players", async (req, res) => {
     console.log(error);
     res.send(ErrorResponse("Something went wrong", 500));
   }
+});
+
+router.get("/section", async (req, res) => {
+  const data = await fetchSections();
+  res.send(data);
 });
 
 export default router;

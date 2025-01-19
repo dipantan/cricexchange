@@ -13,7 +13,6 @@ import {
 import { allrounder, batsman, bowler, keeper } from "../resources/data";
 import { ResultSetHeader } from "mysql2";
 import { Request } from "express";
-import { log } from "node:console";
 
 const fetchPoints = async (req: Request) => {
   try {
@@ -282,20 +281,32 @@ const fetchPreviousMatches = async () => {
 };
 
 const fetchSections = async () => {
+  const sql = `select sections.id, sections.player_id, players.position, players.fullname, players.image_path, players.country, players.gender, prices.curr_price from sections inner join players on sections.player_id = players.id  inner join prices on sections.player_id = prices.player_id`;
 
-  
+  const data = await dbConfig(sql);
 
+  if (data?.constructor === Array && data.length > 0) {
+    console.log(data);
+    
+    const batsman = data.filter((item: any) => item.position.name === "Batsman");
+    const keeper = data.filter((item: any) => item.position.name === "Wicketkeeper");
+    const bowler = data.filter((item: any) => item.position.name === "Bowler");
+    const allrounder = data.filter(
+      (item: any) => item.position.name === "Allrounder"
+    );
 
-
-  return SuccessResponse(
-    {
-      batsman,
-      keeper,
-      bowler,
-      allrounder,
-    },
-    200
-  );
+    return SuccessResponse(
+      {
+        batsman,
+        keeper,
+        bowler,
+        allrounder,
+      },
+      200
+    );
+  } else {
+    return SuccessResponse([], 200);
+  }
 };
 
 const insertToCart = async (body: CartItem) => {
