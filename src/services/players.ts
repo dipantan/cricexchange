@@ -286,10 +286,12 @@ const fetchSections = async () => {
   const data = await dbConfig(sql);
 
   if (data?.constructor === Array && data.length > 0) {
-    console.log(data);
-    
-    const batsman = data.filter((item: any) => item.position.name === "Batsman");
-    const keeper = data.filter((item: any) => item.position.name === "Wicketkeeper");
+    const batsman = data.filter(
+      (item: any) => item.position.name === "Batsman"
+    );
+    const keeper = data.filter(
+      (item: any) => item.position.name === "Wicketkeeper"
+    );
     const bowler = data.filter((item: any) => item.position.name === "Bowler");
     const allrounder = data.filter(
       (item: any) => item.position.name === "Allrounder"
